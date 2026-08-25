@@ -13,3 +13,8 @@ output "postgres_connection_string" {
   value       = "Host=${aws_db_instance.postgres.address};Port=${aws_db_instance.postgres.port};Database=${var.db_name};Username=${var.db_user};Password=${var.db_password}"
   sensitive   = true
 }
+
+output "rds_security_group_id" {
+  description = "Security group do RDS — usado por tech-challenge-lambda para liberar acesso da Lambda de autenticação"
+  value       = aws_security_group.postgres.id
+}
