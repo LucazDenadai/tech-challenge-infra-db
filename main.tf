@@ -8,7 +8,7 @@ resource "aws_db_subnet_group" "postgres" {
 # não da VPC inteira (mais restrito do que o critério mínimo do CARD-28)
 resource "aws_security_group" "postgres" {
   name        = "oficina-mecanica-rds-sg"
-  description = "Acesso ao RDS PostgreSQL restrito aos nós do EKS"
+  description = "Acesso ao RDS PostgreSQL restrito aos nos do EKS"
   vpc_id      = data.terraform_remote_state.infra_k8s.outputs.vpc_id
 
   ingress {
