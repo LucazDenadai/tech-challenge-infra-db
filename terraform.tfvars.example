@@ -1,14 +1,9 @@
 # Copie este arquivo para terraform.tfvars antes de rodar o terraform apply
 # O arquivo terraform.tfvars NÃO deve ser commitado (.gitignore já cobre)
-#
-# Credenciais abaixo são para ambiente local de desenvolvimento/estudo.
-# Em produção, use senhas fortes e nunca exponha em repositórios.
 
-db_name     = "oficinamecanica"
-db_user     = "oficina"
-db_password = "oficina@123"
-db_port     = 5433
-
-# Nome da rede Docker criada pelo cluster Kind — provisionado no repositório
-# tech-challenge-infra-k8s. Deve ser aplicado DEPOIS daquele repositório.
-kind_network = "kind"
+aws_region            = "us-east-1"
+db_name               = "oficinamecanica"
+db_user               = "oficina"
+db_password            = "TROQUE_ESTA_SENHA"
+db_instance_class     = "db.t3.micro"
+db_allocated_storage  = 20
