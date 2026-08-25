@@ -12,7 +12,7 @@ resource "aws_security_group" "postgres" {
   vpc_id      = data.terraform_remote_state.infra_k8s.outputs.vpc_id
 
   ingress {
-    description     = "PostgreSQL a partir dos nós EKS"
+    description     = "PostgreSQL a partir dos nos EKS"
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
