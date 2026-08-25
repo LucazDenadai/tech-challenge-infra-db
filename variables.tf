@@ -1,3 +1,9 @@
+variable "aws_region" {
+  description = "Região AWS (decidida no ADR-010)"
+  type        = string
+  default     = "us-east-1"
+}
+
 variable "db_name" {
   description = "Nome do banco de dados principal"
   type        = string
@@ -16,14 +22,14 @@ variable "db_password" {
   sensitive   = true
 }
 
-variable "db_port" {
-  description = "Porta do PostgreSQL exposta no host"
-  type        = number
-  default     = 5433
+variable "db_instance_class" {
+  description = "Classe da instância RDS (sizing definido no ADR-010)"
+  type        = string
+  default     = "db.t3.micro"
 }
 
-variable "kind_network" {
-  description = "Nome da rede Docker criada pelo cluster Kind (repositório tech-challenge-infra-k8s)"
-  type        = string
-  default     = "kind"
+variable "db_allocated_storage" {
+  description = "Armazenamento alocado do RDS em GB (mínimo viável)"
+  type        = number
+  default     = 20
 }

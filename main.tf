@@ -1,81 +1,56 @@
-# Busca a rede Docker criada pelo cluster Kind (repositório tech-challenge-infra-k8s)
-# data "docker_network" lê um recurso existente sem criar — só consulta
-data "docker_network" "kind" {
-  name = var.kind_network
+# Subnet group do RDS usando as subnets privadas da VPC criada em tech-challenge-infra-k8s
+resource "aws_db_subnet_group" "postgres" {
+  name       = "oficina-mecanica-rds"
+  subnet_ids = data.terraform_remote_state.infra_k8s.outputs.private_subnet_ids
 }
 
-resource "docker_image" "postgres" {
-  name         = "postgres:16"
-  keep_locally = true
-}
+# Security group do RDS — libera acesso apenas do security group dos nós EKS,
+# não da VPC inteira (mais restrito do que o critério mínimo do CARD-28)
+resource "aws_security_group" "postgres" {
+  name        = "oficina-mecanica-rds-sg"
+  description = "Acesso ao RDS PostgreSQL restrito aos nós do EKS"
+  vpc_id      = data.terraform_remote_state.infra_k8s.outputs.vpc_id
 
-resource "docker_container" "postgres" {
-  name  = "oficina-postgres"
-  image = docker_image.postgres.image_id
-
-  # Variáveis de ambiente que o container oficial do Postgres usa
-  # para criar o banco e o usuário na primeira inicialização
-  env = [
-    "POSTGRES_DB=${var.db_name}",
-    "POSTGRES_USER=${var.db_user}",
-    "POSTGRES_PASSWORD=${var.db_password}",
-  ]
-
-  # Porta 5432 do container acessível na porta var.db_port do host
-  # Útil para conectar via DBeaver ou psql direto da sua máquina
-  ports {
-    internal = 5432
-    external = var.db_port
+  ingress {
+    description     = "PostgreSQL a partir dos nós EKS"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [data.terraform_remote_state.infra_k8s.outputs.node_security_group_id]
   }
 
-  # Conecta o container à rede do Kind para que os pods consigam alcançá-lo
-  networks_advanced {
-    name = data.docker_network.kind.name
-  }
-
-  # Garante que o container reinicia automaticamente se o Docker reiniciar
-  restart = "unless-stopped"
-
-  healthcheck {
-    test         = ["CMD-SHELL", "pg_isready -U ${var.db_user} -d ${var.db_name}"]
-    interval     = "5s"
-    timeout      = "5s"
-    retries      = 10
-    start_period = "10s"
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-# null_resource não cria infraestrutura real — serve para executar
-# scripts locais (local-exec) ou remotos como parte do apply.
-# Aqui usamos para criar os schemas após o container estar saudável.
-resource "null_resource" "create_schemas" {
-  depends_on = [docker_container.postgres]
+resource "aws_db_instance" "postgres" {
+  identifier     = "oficina-mecanica-db"
+  engine         = "postgres"
+  engine_version = "16"
 
-  # triggers define quando esse null_resource deve re-executar.
-  # Se o container for recriado (novo ID), o script roda de novo.
-  triggers = {
-    container_id = docker_container.postgres.id
-  }
+  instance_class    = var.db_instance_class
+  allocated_storage = var.db_allocated_storage
 
-  provisioner "local-exec" {
-    # Aguarda o Postgres aceitar conexões, depois cria os dois schemas.
-    # O loop evita falha se o container ainda estiver inicializando.
-    # Usa PowerShell pois o ambiente é Windows.
-    interpreter = ["PowerShell", "-Command"]
-    command     = <<-EOT
-      Write-Host "Aguardando PostgreSQL ficar pronto..."
-      $ready = $false
-      for ($i = 1; $i -le 20; $i++) {
-        docker exec oficina-postgres pg_isready -U ${var.db_user} -d ${var.db_name}
-        if ($LASTEXITCODE -eq 0) { $ready = $true; break }
-        Write-Host "Tentativa $i/20 - aguardando 3s..."
-        Start-Sleep -Seconds 3
-      }
-      if (-not $ready) { throw "PostgreSQL nao ficou pronto a tempo" }
-      Write-Host "Criando schemas..."
-      docker exec oficina-postgres psql -U ${var.db_user} -d ${var.db_name} -c "CREATE SCHEMA IF NOT EXISTS atendimento;"
-      docker exec oficina-postgres psql -U ${var.db_user} -d ${var.db_name} -c "CREATE SCHEMA IF NOT EXISTS estoque;"
-      Write-Host "Schemas criados com sucesso."
-    EOT
-  }
+  db_name  = var.db_name
+  username = var.db_user
+  password = var.db_password
+
+  db_subnet_group_name   = aws_db_subnet_group.postgres.name
+  vpc_security_group_ids = [aws_security_group.postgres.id]
+
+  # Uso sob demanda (ADR-010) — sem necessidade de backup automatizado longo nem multi-AZ
+  backup_retention_period = 1
+  multi_az                = false
+  publicly_accessible     = false
+
+  skip_final_snapshot = true
 }
+
+# Os schemas "atendimento" e "estoque" (ADR-007) são criados pela aplicação no startup,
+# no mesmo bloco que já cria o banco caso não exista (lição registrada no CONTEXT-PROMPT
+# sobre o CARD-14) — não pelo Terraform, já que o RDS fica em subnet privada e o
+# terraform apply roda fora da VPC (notebook local ou runner ubuntu-latest do GitHub Actions).
