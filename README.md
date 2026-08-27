@@ -62,6 +62,9 @@ terraform destroy
 | `db_address` | Hostname do RDS |
 | `db_port` | Porta do RDS |
 | `postgres_connection_string` | Connection string completa (sensitive) |
+| `rds_security_group_id` | Security group do RDS — consumido por `tech-challenge-lambda` para liberar acesso da Lambda de autenticação |
+
+`rds_security_group_id` é lido por `tech-challenge-lambda/infra/main.tf` via `terraform_remote_state` — não altere o nome sem atualizar o consumidor.
 
 ## O que NÃO commitar
 
