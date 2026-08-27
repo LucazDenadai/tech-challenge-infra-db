@@ -4,6 +4,13 @@ Terraform que provisiona o banco de dados usado pelo [Tech-challenge](https://gi
 
 Documentação arquitetural completa (ADRs, RFCs, diagramas) em [tech-challenge-docs](https://github.com/LucazDenadai/tech-challenge-docs).
 
+Diagramas relevantes para este repositório:
+
+| Diagrama | Conteúdo |
+|---|---|
+| [Entidade-Relacionamento](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/diagramas/diagrama-er.md) | Modelo de dados do banco provisionado aqui — schemas `atendimento`/`estoque` |
+| [Componentes](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/diagramas/diagrama-componentes.md) | Onde este RDS se encaixa na arquitetura de nuvem |
+
 ## Estado atual
 
 Provisiona uma instância **RDS PostgreSQL** real (migração do container Docker local do ADR-005, conforme [ADR-009](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-009-migracao-aws-e-separacao-repositorios.md) e [ADR-010](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-010-sizing-e-regiao-aws.md)). Ver critérios de aceite em [CARD-28](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/cards/05-fase3-aws/CARD-28-infra-aws-terraform.md).
